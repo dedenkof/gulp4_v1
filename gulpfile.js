@@ -1,6 +1,6 @@
 'use strict';
 
-var gulp = require('gulp'),
+const gulp = require('gulp'),
     //watch = require('gulp-watch'),
     prefixer = require('gulp-autoprefixer'),
     uglify = require('gulp-uglify'),
@@ -17,7 +17,7 @@ var gulp = require('gulp'),
     reload = browserSync.reload;
 
 // В обьект прописываем нужные пути
-var path = {
+const path = {
     build: { //Тут мы укажем куда складывать готовые после сборки файлы
         html: 'build/',
         js: 'build/js/',
@@ -43,7 +43,7 @@ var path = {
 };
 
 // Переменная с настройками нашего dev сервера
-var config = {
+const config = {
     server: {
         baseDir: "./build"
     },
@@ -54,8 +54,9 @@ var config = {
 };
 
 // запустим livereload сервер с настройками, которые мы определили в объекте config
-gulp.task('webserver', function () {
+gulp.task('webserver', function (done) {
     browserSync(config);
+    done();
 });
 
 // Очистка
@@ -64,15 +65,16 @@ gulp.task('clean', function (cb) {
 });
 
 // Сборка html
-gulp.task('html', function () {
+gulp.task('html', function (done) {
     gulp.src(path.src.html) //Выберем файлы по нужному пути
         .pipe(rigger()) //Прогоним через rigger
         .pipe(gulp.dest(path.build.html)) //Выплюнем их в папку build
         .pipe(reload({stream: true})); //И перезагрузим наш сервер для обновлений
+    done();
 });
 
 // Сборка js
-gulp.task('js', function () {
+gulp.task('js', function (done) {
     gulp.src(path.src.js) //Найдем наш main файл
         .pipe(rigger()) //Прогоним через rigger для импорта файлов
         .pipe(sourcemaps.init()) //Инициализируем sourcemap
@@ -80,10 +82,11 @@ gulp.task('js', function () {
         .pipe(sourcemaps.write()) //Пропишем карты
         .pipe(gulp.dest(path.build.js)) //Выплюнем готовый файл в build
         .pipe(reload({stream: true})); //И перезагрузим сервер
+    done();
 });
 
 // Сборка стилей нашего SCSS
-gulp.task('style', function () {
+gulp.task('style', function (done) {
     gulp.src(path.src.style) //Выберем наш main.scss
         .pipe(sourcemaps.init()) //То же самое что и с js
         .pipe(sass({
@@ -95,10 +98,11 @@ gulp.task('style', function () {
         .pipe(sourcemaps.write())
         .pipe(gulp.dest(path.build.css)) //И в build
         .pipe(reload({stream: true}));
+    done();
 });
 
 // Собираем картинки
-gulp.task('image', function () {
+gulp.task('image', function (done) {
     gulp.src(path.src.img) //Выберем наши картинки
         .pipe(imagemin({ //Сожмем их
             progressive: true,
@@ -108,37 +112,26 @@ gulp.task('image', function () {
         }))
         .pipe(gulp.dest(path.build.img)) //И бросим в build
         .pipe(reload({stream: true}));
+    done();
 });
 
 // Собираем шрифты
-gulp.task('fonts', function() {
+gulp.task('fonts', function(done) {
     gulp.src(path.src.fonts)
-        .pipe(gulp.dest(path.build.fonts))
+        .pipe(gulp.dest(path.build.fonts));
+    done();
 });
 
-// Определим таск с именем «build», который будет запускать все код выше:
-/*gulp.task('build', [
-    'html:build',
-    'js:build',
-    'style:build',
-    'fonts:build',
-    'image:build'
-]);*/
 
-
-// попросим gulp каждый раз при изменении какого то файла запускать нужную задачу
-gulp.task('watch', function(){
+gulp.task('watch', gulp.series(['html', 'js', 'style', 'fonts', 'image']), function() {
     gulp.watch('path.watch.html', gulp.series('html'));
     gulp.watch('path.watch.style',gulp.series('style'));
     gulp.watch('path.watch.js', gulp.series('js'));
     gulp.watch('path.watch.img', gulp.series('image'));
     gulp.watch('path.watch.fonts', gulp.series('fonts'));
+
 });
 
-gulp.task('build', gulp.series(
-    'clean',
-    gulp.parallel('html', 'js', 'style', 'fonts', 'image')
-));
+gulp.task('build',gulp.series(['clean',gulp.parallel('html', 'js', 'style', 'fonts', 'image')]));
 
-
-gulp.task('default', gulp.series('build', gulp.parallel('watch', 'webserver')));
+gulp.task('default', gulp.series(['build', gulp.parallel('watch', 'webserver')]));
